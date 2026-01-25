@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Ronak"
 __description__ = "A CLI tool to detect phishing URLs using machine learning"
 

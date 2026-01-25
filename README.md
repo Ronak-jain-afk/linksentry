@@ -10,6 +10,37 @@ A command-line tool to detect phishing URLs using machine learning.
 - 🌐 **Optional Deep Analysis** - DNS, WHOIS, and SSL lookups with `--full` flag
 - 📊 **Multiple Output Formats** - Plain text or JSON output
 
+## Model Performance
+
+Trained on 57,405 URLs (after deduplication) with 80/20 train-test split.
+
+| Metric | Score |
+|--------|-------|
+| **Accuracy** | 95.76% |
+| **ROC-AUC** | 0.9913 |
+
+### Per-Class Metrics
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|--------|
+| Legitimate (0) | 0.96 | 0.95 | 0.95 | 5,382 |
+| Phishing (1) | 0.96 | 0.96 | 0.96 | 6,099 |
+
+### Confusion Matrix
+
+|  | Predicted Legitimate | Predicted Phishing |
+|--|---------------------|-------------------|
+| **Actual Legitimate** | 5,121 (TN) | 261 (FP) |
+| **Actual Phishing** | 226 (FN) | 5,873 (TP) |
+
+### Top 5 Important Features
+
+1. `directory_length` (0.114)
+2. `time_domain_activation` (0.087)
+3. `length_url` (0.046)
+4. `qty_slash_url` (0.040)
+5. `qty_slash_directory` (0.037)
+
 ## Installation
 
 ```bash
