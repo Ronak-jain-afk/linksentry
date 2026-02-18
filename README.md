@@ -265,3 +265,5 @@ MIT License
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+> **Note:** This README and code documentation were generated with assistance from AI.
