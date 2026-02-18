@@ -41,6 +41,90 @@ Trained on 57,405 URLs (after deduplication) with 80/20 train-test split.
 4. `qty_slash_url` (0.040)
 5. `qty_slash_directory` (0.037)
 
+### Decision Flow (Simplified)
+
+```mermaid
+flowchart TD
+    A[🔗 Input URL] --> B{Extract 111 Features}
+    B --> C[URL Characters]
+    B --> D[Domain Analysis]
+    B --> E[Path Structure]
+    B --> F[External Data]
+    
+    C --> G{Feature Analysis}
+    D --> G
+    E --> G
+    F --> G
+    
+    G --> H{directory_length<br/>High importance: 11.4%}
+    H -->|Long/Suspicious| I{time_domain_activation<br/>Importance: 8.7%}
+    H -->|Normal| J{length_url<br/>Importance: 4.6%}
+    
+    I -->|New Domain < 30 days| K[⚠️ HIGH RISK]
+    I -->|Established| L{qty_slash_url}
+    
+    J -->|Short URL| M[✅ Likely Safe]
+    J -->|Very Long| N{Check Other Features}
+    
+    L -->|Many Slashes| O[⚠️ PHISHING]
+    L -->|Normal| P{Random Forest<br/>100 Trees Vote}
+    
+    N --> P
+    K --> Q[🔴 PHISHING<br/>Confidence: High]
+    O --> Q
+    
+    P -->|Majority: Phishing| Q
+    P -->|Majority: Legitimate| R[🟢 LEGITIMATE<br/>Confidence: Based on votes]
+    M --> R
+    
+    style K fill:#ff6b6b,color:#fff
+    style O fill:#ff6b6b,color:#fff
+    style Q fill:#d63031,color:#fff
+    style M fill:#00b894,color:#fff
+    style R fill:#00b894,color:#fff
+    style A fill:#0984e3,color:#fff
+    style P fill:#6c5ce7,color:#fff
+```
+
+### Model Architecture
+
+```mermaid
+flowchart LR
+    subgraph Input
+        A[Raw URL]
+    end
+    
+    subgraph Feature Extraction
+        B[URL Parser]
+        C[Char Counter]
+        D[DNS Lookup*]
+        E[WHOIS Query*]
+    end
+    
+    subgraph Pipeline
+        F[StandardScaler]
+        G[Random Forest<br/>100 Trees]
+    end
+    
+    subgraph Output
+        H[Prediction]
+        I[Probability]
+    end
+    
+    A --> B --> C --> F
+    A --> D --> F
+    A --> E --> F
+    F --> G --> H
+    G --> I
+    
+    style A fill:#74b9ff,color:#000
+    style G fill:#a29bfe,color:#000
+    style H fill:#55efc4,color:#000
+    style I fill:#ffeaa7,color:#000
+```
+
+*DNS/WHOIS features require `--full` flag
+
 ## Installation
 
 ```bash
