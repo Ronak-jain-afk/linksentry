@@ -54,7 +54,6 @@ def check(url: str, full: bool, as_json: bool):
     """Check if a URL is phishing or legitimate."""
     try:
         result = predict_url(url, full=full)
-        result['error'] = None
     except FileNotFoundError as e:
         click.echo(click.style(f"Error: Model not found. Run 'linksentry train' first.", fg='red'), err=True)
         sys.exit(1)

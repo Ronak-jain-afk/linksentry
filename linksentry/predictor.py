@@ -44,7 +44,8 @@ def predict_url(url: str, model=None, full: bool = False) -> dict:
         'confidence': float(max(probability)),
         'probability_legitimate': float(probability[0]),
         'probability_phishing': float(probability[1]),
-        'features_extracted': len(ordered_features)
+        'features_extracted': len(ordered_features),
+        'error': None,
     }
 
 
@@ -56,7 +57,6 @@ def predict_urls(urls: list, model=None, full: bool = False) -> list:
     for url in urls:
         try:
             result = predict_url(url, model=model, full=full)
-            result['error'] = None
         except Exception as e:
             result = {
                 'url': url,
