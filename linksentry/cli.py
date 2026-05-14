@@ -10,7 +10,7 @@ from . import __version__
 from .extractor import extract_features, FEATURE_ORDER
 from .predictor import predict_url, predict_urls, load_model, get_model_path
 from .config import load_config, init_config, get_config_path
-from .model import MODEL_TYPES
+from .model import MODEL_TYPES, load_manifest
 from .train import train_model
 
 
@@ -244,6 +244,10 @@ def info(as_json: bool):
                 info_data['n_features'] = getattr(classifier, 'n_features_in_', None)
         except Exception:
             pass
+        
+        manifest = load_manifest(str(model_path))
+        if manifest:
+            info_data['manifest'] = manifest
     
     if as_json:
         click.echo(json.dumps(info_data, indent=2))
@@ -255,13 +259,24 @@ def info(as_json: bool):
         click.echo(f"Model Path:   {info_data['model_path']}")
         
         if info_data['model_exists']:
-            click.echo(click.style("Model Status: ✅ Installed", fg='green'))
+            click.echo(click.style("Model Status: Installed", fg='green'))
             click.echo(f"Model Size:   {info_data.get('model_size_mb', 'N/A')} MB")
             click.echo(f"Model Type:   {info_data.get('model_type', 'N/A')}")
             click.echo(f"Estimators:   {info_data.get('n_estimators', 'N/A')}")
             click.echo(f"Features:     {info_data.get('n_features', 'N/A')}")
+            
+            manifest = info_data.get('manifest', {})
+            if manifest:
+                click.echo("")
+                click.echo(click.style("Model Manifest:", bold=True))
+                click.echo(f"  Trained at:  {manifest.get('trained_at', 'N/A')}")
+                click.echo(f"  LinkSentry:  v{manifest.get('linksentry_version', 'N/A')}")
+                click.echo(f"  Full mode:   {manifest.get('full', 'N/A')}")
+                click.echo(f"  Accuracy:    {manifest.get('accuracy', 'N/A')}")
+                if manifest.get('roc_auc'):
+                    click.echo(f"  ROC-AUC:     {manifest['roc_auc']}")
         else:
-            click.echo(click.style("Model Status: ❌ Not found", fg='red'))
+            click.echo(click.style("Model Status: Not found", fg='red'))
             click.echo("Run 'linksentry train --data <dataset.csv>' to train a model.")
 
 

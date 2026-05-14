@@ -3,6 +3,7 @@ from typing import Optional
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from . import __version__
 from .extractor import EXTERNAL_FEATURE_NAMES, FEATURE_ORDER
 from .predictor import get_model_path
 from .preprocess import load_data, clean_data, split_features_labels, check_class_distribution
@@ -76,7 +77,15 @@ def train_model(
     if output_path is None:
         output_path = str(get_model_path(full=full))
     
-    save_model(pipeline, output_path)
+    extra_meta = {
+        'linksentry_version': __version__,
+        'model_type_short': model_type,
+        'full': full,
+        'train_samples': X_train.shape[0],
+        'accuracy': float(metrics['accuracy']),
+        'roc_auc': float(metrics['roc_auc']) if metrics['roc_auc'] else None,
+    }
+    save_model(pipeline, output_path, extra_meta=extra_meta)
     
     print("\n" + "="*60)
     print("TRAINING COMPLETE")

@@ -5,6 +5,7 @@ import pandas as pd
 import joblib
 
 from .extractor import extract_features, get_ordered_features, FEATURE_ORDER, EXTERNAL_FEATURE_NAMES
+from .model import load_manifest
 
 
 def get_model_path(full: bool = False) -> Path:

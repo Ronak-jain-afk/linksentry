@@ -1,4 +1,8 @@
+import json
 import os
+from datetime import datetime
+from pathlib import Path
+
 import joblib
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
@@ -122,7 +126,38 @@ def evaluate_model(y_true, y_pred, y_proba=None) -> dict:
     }
 
 
-def save_model(pipeline: Pipeline, filepath: str):
+def _get_manifest_path(model_path: str) -> Path:
+    p = Path(model_path)
+    return p.with_name(p.stem + '_manifest.json')
+
+
+def save_model(pipeline: Pipeline, filepath: str, extra_meta: dict = None):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     joblib.dump(pipeline, filepath)
+
+    manifest = {
+        'model_type': type(pipeline.named_steps['classifier']).__name__,
+        'n_features': pipeline.named_steps['classifier'].n_features_in_,
+        'n_estimators': getattr(pipeline.named_steps['classifier'], 'n_estimators', None),
+        'trained_at': datetime.now().isoformat(),
+    }
+    scaler = pipeline.named_steps.get('scaler')
+    if scaler and hasattr(scaler, 'feature_names_in_'):
+        manifest['feature_names'] = list(scaler.feature_names_in_)
+
+    if extra_meta:
+        manifest.update(extra_meta)
+
+    manifest_path = _get_manifest_path(filepath)
+    with open(manifest_path, 'w') as f:
+        json.dump(manifest, f, indent=2)
     print(f"\nModel saved to: {filepath}")
+    print(f"Manifest saved to: {manifest_path}")
+
+
+def load_manifest(model_path: str) -> dict:
+    manifest_path = _get_manifest_path(model_path)
+    if not manifest_path.exists():
+        return {}
+    with open(manifest_path) as f:
+        return json.load(f)
