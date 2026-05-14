@@ -4,16 +4,19 @@ from typing import Optional, Union
 import pandas as pd
 import joblib
 
-from .extractor import extract_features, get_ordered_features, FEATURE_ORDER
+from .extractor import extract_features, get_ordered_features, FEATURE_ORDER, EXTERNAL_FEATURE_NAMES
 
 
-def get_model_path() -> Path:
-    return Path(__file__).parent / "models" / "phishing_rf_model.pkl"
+def get_model_path(full: bool = False) -> Path:
+    model_dir = Path(__file__).parent / "models"
+    if full:
+        return model_dir / "phishing_rf_model_full.pkl"
+    return model_dir / "phishing_rf_model.pkl"
 
 
-def load_model(model_path: Optional[Union[str, Path]] = None):
+def load_model(model_path: Optional[Union[str, Path]] = None, full: bool = False):
     if model_path is None:
-        model_path = get_model_path()
+        model_path = get_model_path(full=full)
     
     model_path = Path(model_path)
     
@@ -25,13 +28,17 @@ def load_model(model_path: Optional[Union[str, Path]] = None):
 
 def predict_url(url: str, model=None, full: bool = False) -> dict:
     if model is None:
-        model = load_model()
+        model = load_model(full=full)
     
     features = extract_features(url, full=full)
     ordered_features = get_ordered_features(features)
     
     df = pd.DataFrame([ordered_features])
     df = df[FEATURE_ORDER]
+    
+    if not full:
+        cols_to_drop = [c for c in EXTERNAL_FEATURE_NAMES if c in df.columns]
+        df = df.drop(columns=cols_to_drop)
     
     prediction = model.predict(df)[0]
     probability = model.predict_proba(df)[0]
@@ -43,14 +50,14 @@ def predict_url(url: str, model=None, full: bool = False) -> dict:
         'confidence': float(max(probability)),
         'probability_legitimate': float(probability[0]),
         'probability_phishing': float(probability[1]),
-        'features_extracted': len(ordered_features),
+        'features_extracted': df.shape[1],
         'error': None,
     }
 
 
 def predict_urls(urls: list, model=None, full: bool = False) -> list:
     if model is None:
-        model = load_model()
+        model = load_model(full=full)
     
     results = []
     for url in urls:

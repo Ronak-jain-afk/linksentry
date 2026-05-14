@@ -87,7 +87,7 @@ def check(url: str, full: bool, as_json: bool):
 def check_file(filepath: str, full: bool, as_json: bool, output: Optional[str]):
     """Check multiple URLs from a file (one URL per line)."""
     try:
-        model = load_model()
+        model = load_model(full=full)
     except FileNotFoundError:
         click.echo(click.style(f"Error: Model not found. Run 'linksentry train' first.", fg='red'), err=True)
         sys.exit(1)
@@ -145,10 +145,11 @@ def check_file(filepath: str, full: bool, as_json: bool, output: Optional[str]):
 @cli.command()
 @click.option('--data', '-d', type=click.Path(exists=True), required=True, help='Path to training dataset CSV')
 @click.option('--output', '-o', type=click.Path(), help='Path to save trained model')
-def train(data: str, output: Optional[str]):
+@click.option('--full', '-f', is_flag=True, help='Train with external features (DNS/WHOIS) included')
+def train(data: str, output: Optional[str], full: bool):
     """Train or retrain the phishing detection model."""
     try:
-        result = train_model(data_path=data, output_path=output)
+        result = train_model(data_path=data, output_path=output, full=full)
         click.echo(click.style("\n✅ Model trained successfully!", fg='green', bold=True))
         click.echo(f"Model saved to: {result['model_path']}")
         click.echo(f"Accuracy: {result['metrics']['accuracy']:.4f}")

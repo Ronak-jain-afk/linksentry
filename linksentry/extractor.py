@@ -347,6 +347,13 @@ def extract_features(url: str, full: bool = False) -> dict:
     return features
 
 
+EXTERNAL_FEATURE_NAMES = {
+    'time_response', 'domain_spf', 'asn_ip',
+    'time_domain_activation', 'time_domain_expiration', 'qty_ip_resolved',
+    'qty_nameservers', 'qty_mx_servers', 'ttl_hostname', 'tls_ssl_certificate',
+    'qty_redirects', 'url_google_index', 'domain_google_index',
+}
+
 FEATURE_ORDER = [
     'qty_dot_url', 'qty_hyphen_url', 'qty_underline_url', 'qty_slash_url',
     'qty_questionmark_url', 'qty_equal_url', 'qty_at_url', 'qty_and_url',
