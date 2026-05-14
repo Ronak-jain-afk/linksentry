@@ -2,6 +2,7 @@ import re
 import socket
 import ssl
 import time
+from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from typing import Optional
 
@@ -266,7 +267,6 @@ def get_whois_info(domain: str) -> dict:
             creation = w.creation_date
             if isinstance(creation, list):
                 creation = creation[0]
-            from datetime import datetime
             days_since_creation = (datetime.now() - creation).days
             info['time_domain_activation'] = days_since_creation
         
@@ -274,7 +274,6 @@ def get_whois_info(domain: str) -> dict:
             expiration = w.expiration_date
             if isinstance(expiration, list):
                 expiration = expiration[0]
-            from datetime import datetime
             days_until_expiration = (expiration - datetime.now()).days
             info['time_domain_expiration'] = days_until_expiration
     except Exception:
