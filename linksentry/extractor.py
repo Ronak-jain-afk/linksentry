@@ -74,7 +74,11 @@ def has_server_client(domain: str) -> int:
 
 
 def is_shortened_url(domain: str) -> int:
-    return 1 if any(shortener in domain.lower() for shortener in SHORTENERS) else 0
+    domain_lower = domain.lower()
+    for shortener in SHORTENERS:
+        if domain_lower == shortener or domain_lower.endswith('.' + shortener):
+            return 1
+    return 0
 
 
 def has_email_in_url(url: str) -> int:
