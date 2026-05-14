@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -37,6 +38,14 @@ def format_result_text(result: dict) -> str:
             f"P(Phishing): {result['probability_phishing']:.4f}",
         ])
     
+    if result.get('top_features'):
+        lines.append("")
+        lines.append(click.style("Top features by importance:", bold=True))
+        for tf in result['top_features']:
+            lines.append(
+                f"  {tf['feature']:<30} value={tf['value']:<8}  importance={tf['importance']:.4f}"
+            )
+    
     return '\n'.join(lines)
 
 
@@ -50,11 +59,12 @@ def cli():
 @cli.command()
 @click.argument('url')
 @click.option('--full', '-f', is_flag=True, help='Perform full feature extraction with DNS/WHOIS lookups')
+@click.option('--explain', '-e', is_flag=True, help='Show top contributing features')
 @click.option('--json', 'as_json', is_flag=True, help='Output result as JSON')
-def check(url: str, full: bool, as_json: bool):
+def check(url: str, full: bool, explain: bool, as_json: bool):
     """Check if a URL is phishing or legitimate."""
     try:
-        result = predict_url(url, full=full)
+        result = predict_url(url, full=full, explain=explain)
     except FileNotFoundError as e:
         click.echo(click.style(f"Error: Model not found. Run 'linksentry train' first.", fg='red'), err=True)
         sys.exit(1)
@@ -83,9 +93,10 @@ def check(url: str, full: bool, as_json: bool):
 @cli.command('check-file')
 @click.argument('filepath', type=click.Path(exists=True))
 @click.option('--full', '-f', is_flag=True, help='Perform full feature extraction with DNS/WHOIS lookups')
+@click.option('--explain', '-e', is_flag=True, help='Show top contributing features')
 @click.option('--json', 'as_json', is_flag=True, help='Output results as JSON')
 @click.option('--output', '-o', type=click.Path(), help='Save results to CSV file')
-def check_file(filepath: str, full: bool, as_json: bool, output: Optional[str]):
+def check_file(filepath: str, full: bool, explain: bool, as_json: bool, output: Optional[str]):
     """Check multiple URLs from a file (one URL per line)."""
     try:
         model = load_model(full=full)
@@ -102,7 +113,7 @@ def check_file(filepath: str, full: bool, as_json: bool, output: Optional[str]):
     
     click.echo(f"Checking {len(urls)} URLs...")
     
-    results = predict_urls(urls, model=model, full=full)
+    results = predict_urls(urls, model=model, full=full, explain=explain)
     
     phishing_count = sum(1 for r in results if r['label'] == 'phishing')
     legitimate_count = sum(1 for r in results if r['label'] == 'legitimate')
@@ -249,6 +260,77 @@ def info(as_json: bool):
         else:
             click.echo(click.style("Model Status: ❌ Not found", fg='red'))
             click.echo("Run 'linksentry train --data <dataset.csv>' to train a model.")
+
+
+@cli.command()
+@click.argument('filepath', type=click.Path(exists=True))
+@click.option('--interval', '-i', default=300, type=int, help='Seconds between checks')
+@click.option('--full', '-f', is_flag=True, help='Perform full feature extraction with DNS/WHOIS lookups')
+def watch(filepath: str, interval: int, full: bool):
+    """Watch URLs for changes in classification over time.
+
+    Re-checks URLs from FILEPATH at regular INTERVAL and reports changes.
+    """
+    try:
+        model = load_model(full=full)
+    except FileNotFoundError:
+        click.echo(click.style("Error: Model not found. Run 'linksentry train' first.", fg='red'), err=True)
+        sys.exit(1)
+
+    with open(filepath, 'r') as f:
+        urls = [line.strip() for line in f if line.strip()]
+
+    if not urls:
+        click.echo(click.style("Error: No URLs found in file.", fg='red'), err=True)
+        sys.exit(1)
+
+    click.echo(click.style(f"\nWatching {len(urls)} URLs every {interval}s - Ctrl+C to stop", bold=True))
+    click.echo("=" * 50)
+
+    previous = {}
+    total_changes = 0
+
+    try:
+        while True:
+            now = time.strftime('%H:%M:%S')
+            click.echo(f"\n[{now}] Checking {len(urls)} URLs...")
+
+            results = predict_urls(urls, model=model, full=full)
+            phishing_now = 0
+
+            for r in results:
+                url = r['url']
+                label = r['label']
+                prev_label = previous.get(url)
+
+                if label == 'phishing':
+                    phishing_now += 1
+
+                if prev_label is not None and prev_label != label:
+                    total_changes += 1
+                    if label == 'phishing':
+                        icon = click.style("CHANGED -> PHISHING", fg='red', bold=True)
+                    else:
+                        icon = click.style("CHANGED -> LEGITIMATE", fg='green', bold=True)
+                    conf = r['confidence'] * 100
+                    click.echo(f"  {icon}  {url}  (confidence: {conf:.1f}%)")
+                elif prev_label is None:
+                    status = click.style("PHISHING", fg='red') if label == 'phishing' else click.style("OK", fg='green')
+                    click.echo(f"  [{status}] {url}")
+
+                previous[url] = label
+
+            click.echo(f"  Status: {len(urls) - phishing_now} legitimate, {phishing_now} phishing")
+
+            click.echo(f"\n  -> Sleeping {interval}s... ", nl=False)
+            time.sleep(interval)
+
+    except KeyboardInterrupt:
+        summary_line = "CHANGES DETECTED" if total_changes > 0 else "NO CHANGES"
+        click.echo(f"\n\n{'=' * 50}")
+        click.echo(click.style(f"WATCH COMPLETE - {summary_line}", bold=True))
+        click.echo(f"Total reclassifications: {total_changes}")
+        click.echo("=" * 50)
 
 
 def main():

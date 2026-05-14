@@ -26,7 +26,7 @@ def load_model(model_path: Optional[Union[str, Path]] = None, full: bool = False
     return joblib.load(model_path)
 
 
-def predict_url(url: str, model=None, full: bool = False) -> dict:
+def predict_url(url: str, model=None, full: bool = False, explain: bool = False) -> dict:
     if model is None:
         model = load_model(full=full)
     
@@ -40,10 +40,14 @@ def predict_url(url: str, model=None, full: bool = False) -> dict:
         cols_to_drop = [c for c in EXTERNAL_FEATURE_NAMES if c in df.columns]
         df = df.drop(columns=cols_to_drop)
     
+    scaler = model.named_steps['scaler']
+    model_feature_names = getattr(scaler, 'feature_names_in_', df.columns)
+    df = df[list(model_feature_names)]
+    
     prediction = model.predict(df)[0]
     probability = model.predict_proba(df)[0]
     
-    return {
+    result = {
         'url': url,
         'prediction': int(prediction),
         'label': 'phishing' if prediction == 1 else 'legitimate',
@@ -53,16 +57,32 @@ def predict_url(url: str, model=None, full: bool = False) -> dict:
         'features_extracted': df.shape[1],
         'error': None,
     }
+    
+    if explain:
+        importances = model.named_steps['classifier'].feature_importances_
+        feature_names_list = list(model_feature_names)
+        contribs = []
+        for name, imp in zip(feature_names_list, importances):
+            val = float(df.iloc[0][name])
+            contribs.append({
+                'feature': name,
+                'value': val,
+                'importance': round(imp, 4),
+            })
+        contribs.sort(key=lambda x: x['importance'], reverse=True)
+        result['top_features'] = contribs[:3]
+    
+    return result
 
 
-def predict_urls(urls: list, model=None, full: bool = False) -> list:
+def predict_urls(urls: list, model=None, full: bool = False, explain: bool = False) -> list:
     if model is None:
         model = load_model(full=full)
     
     results = []
     for url in urls:
         try:
-            result = predict_url(url, model=model, full=full)
+            result = predict_url(url, model=model, full=full, explain=explain)
         except Exception as e:
             result = {
                 'url': url,
