@@ -36,6 +36,7 @@ dependencies = [
     "scikit-learn>=1.0",
     "joblib>=1.0",
     "requests>=2.25",
+    "streamlit>=1.28",
 ]
 
 [project.optional-dependencies]
@@ -49,15 +50,11 @@ xgb = [
 lgb = [
     "lightgbm>=4.0",
 ]
-web = [
-    "streamlit>=1.28",
-]
 all = [
     "dnspython>=2.0",
     "python-whois>=0.8",
     "xgboost>=1.7",
     "lightgbm>=4.0",
-    "streamlit>=1.28",
 ]
 dev = [
     "pytest>=7.0",
