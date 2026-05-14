@@ -9,6 +9,7 @@ import click
 from . import __version__
 from .extractor import extract_features, FEATURE_ORDER
 from .predictor import predict_url, predict_urls, load_model, get_model_path
+from .config import load_config, init_config, get_config_path
 from .model import MODEL_TYPES
 from .train import train_model
 
@@ -333,6 +334,32 @@ def watch(filepath: str, interval: int, full: bool):
         click.echo(click.style(f"WATCH COMPLETE - {summary_line}", bold=True))
         click.echo(f"Total reclassifications: {total_changes}")
         click.echo("=" * 50)
+
+
+@cli.group()
+def config():
+    """Manage LinkSentry configuration."""
+    pass
+
+
+@config.command('init')
+def config_init():
+    """Create default configuration file."""
+    path = init_config()
+    click.echo(click.style(f"Config created: {path}", fg='green'))
+
+
+@config.command('show')
+def config_show():
+    """Show current configuration."""
+    cfg = load_config()
+    path = cfg.pop('_path', '')
+    click.echo(f"\nConfig file: {path}")
+    click.echo("=" * 50)
+    for section, values in cfg.items():
+        click.echo(click.style(f"\n[{section}]", bold=True))
+        for key, val in values.items():
+            click.echo(f"  {key} = {val}")
 
 
 def main():
