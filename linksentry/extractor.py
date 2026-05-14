@@ -1,3 +1,4 @@
+import ipaddress
 import re
 import socket
 import ssl
@@ -60,8 +61,11 @@ def count_vowels(text: str) -> int:
 
 
 def is_ip_address(domain: str) -> int:
-    ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
-    return 1 if re.match(ip_pattern, domain) else 0
+    try:
+        ipaddress.ip_address(domain)
+        return 1
+    except ValueError:
+        return 0
 
 
 def has_server_client(domain: str) -> int:
