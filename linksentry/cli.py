@@ -6,6 +6,7 @@ from typing import Optional
 import click
 
 from . import __version__
+from .extractor import extract_features, FEATURE_ORDER
 from .predictor import predict_url, predict_urls, load_model, get_model_path
 from .train import train_model
 
@@ -140,6 +141,49 @@ def check_file(filepath: str, full: bool, as_json: bool, output: Optional[str]):
     
     if phishing_count > 0:
         sys.exit(1)
+
+
+@cli.command()
+@click.argument('input', type=click.Path(exists=True))
+@click.option('--output', '-o', required=True, type=click.Path(), help='Output CSV path')
+@click.option('--full', '-f', is_flag=True, help='Perform full feature extraction with DNS/WHOIS lookups')
+def extract(input: str, output: str, full: bool):
+    """Extract features from URLs into a CSV for training.
+
+    Reads URLs from INPUT (one per line), extracts all features,
+    and writes them to OUTPUT as a CSV with a 'phishing' column (all 0).
+    Edit the 'phishing' column with 0=legitimate, 1=phishing before training.
+    """
+    with open(input, 'r') as f:
+        urls = [line.strip() for line in f if line.strip()]
+
+    if not urls:
+        click.echo(click.style("Error: No URLs found in file.", fg='red'), err=True)
+        sys.exit(1)
+
+    click.echo(f"Extracting features for {len(urls)} URLs...")
+
+    total = len(urls)
+    rows = []
+    for i, url in enumerate(urls, 1):
+        click.echo(f"  [{i}/{total}] {url}")
+        try:
+            features = extract_features(url, full=full)
+            ordered = {key: features.get(key, -1) for key in FEATURE_ORDER}
+            ordered['phishing'] = 0
+            rows.append(ordered)
+        except Exception as e:
+            click.echo(click.style(f"    Error: {e}", fg='red'), err=True)
+
+    if not rows:
+        click.echo(click.style("Error: No features could be extracted.", fg='red'), err=True)
+        sys.exit(1)
+
+    import pandas as pd
+    df = pd.DataFrame(rows)
+    df.to_csv(output, index=False)
+    click.echo(click.style(f"\nWrote {len(df)} rows to {output}", fg='green'))
+    click.echo(f"Columns: {len(df.columns)} ({len(df.columns) - 1} features + 'phishing' target)")
 
 
 @cli.command()
