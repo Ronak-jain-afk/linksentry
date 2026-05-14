@@ -179,8 +179,34 @@ def extract_length_features(components: dict) -> dict:
     return features
 
 
+def _resolve_host(hostname: str):
+    try:
+        return [addr[4][0] for addr in socket.getaddrinfo(hostname, 80)]
+    except Exception:
+        return []
+
+
+def _is_private_host(url: str) -> bool:
+    try:
+        hostname = urlparse(url).hostname
+        if not hostname:
+            return False
+        for ip_str in _resolve_host(hostname):
+            try:
+                if ipaddress.ip_address(ip_str).is_private:
+                    return True
+            except ValueError:
+                continue
+    except Exception:
+        pass
+    return False
+
+
 def get_response_time(url: str, timeout: int = 5) -> float:
     if not REQUESTS_AVAILABLE:
+        return -1
+    
+    if _is_private_host(url):
         return -1
     
     try:
@@ -195,8 +221,16 @@ def get_redirect_count(url: str, timeout: int = 5) -> int:
     if not REQUESTS_AVAILABLE:
         return -1
     
+    if _is_private_host(url):
+        return -1
+    
     try:
         response = requests.head(url, timeout=timeout, allow_redirects=True)
+        for redirect_url in response.history:
+            if _is_private_host(redirect_url.url):
+                return -1
+        if _is_private_host(response.url):
+            return -1
         return len(response.history)
     except Exception:
         return -1
