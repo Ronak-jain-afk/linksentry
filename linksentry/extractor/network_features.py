@@ -5,6 +5,8 @@ import time
 from datetime import datetime
 from urllib.parse import urlparse
 
+from ..cache import cached
+
 try:
     import dns.resolver
     DNS_AVAILABLE = True
@@ -47,6 +49,7 @@ def _is_private_host(url: str) -> bool:
     return False
 
 
+@cached('http', ttl=60)
 def get_response_time(url: str, timeout: int = 5) -> float:
     if not REQUESTS_AVAILABLE:
         return -1
@@ -62,6 +65,7 @@ def get_response_time(url: str, timeout: int = 5) -> float:
         return -1
 
 
+@cached('http', ttl=60)
 def get_redirect_count(url: str, timeout: int = 5) -> int:
     if not REQUESTS_AVAILABLE:
         return -1
@@ -81,6 +85,7 @@ def get_redirect_count(url: str, timeout: int = 5) -> int:
         return -1
 
 
+@cached('ssl', ttl=3600)
 def check_ssl_certificate(domain: str) -> int:
     try:
         context = ssl.create_default_context()
@@ -92,6 +97,7 @@ def check_ssl_certificate(domain: str) -> int:
         return 0
 
 
+@cached('dns', ttl=300)
 def get_dns_info(domain: str) -> dict:
     info = {
         'qty_ip_resolved': -1,
@@ -138,6 +144,7 @@ def get_dns_info(domain: str) -> dict:
     return info
 
 
+@cached('whois', ttl=3600)
 def get_whois_info(domain: str) -> dict:
     info = {
         'time_domain_activation': -1,
