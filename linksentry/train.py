@@ -1,19 +1,12 @@
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
 from sklearn.model_selection import train_test_split
 
 from .extractor import EXTERNAL_FEATURE_NAMES
+from .predictor import get_model_path
 from .preprocess import load_data, clean_data, split_features_labels, check_class_distribution
 from .model import create_pipeline, evaluate_model, save_model
-
-
-def get_default_model_path(full: bool = False) -> Path:
-    model_dir = Path(__file__).parent / "models"
-    if full:
-        return model_dir / "phishing_rf_model_full.pkl"
-    return model_dir / "phishing_rf_model.pkl"
 
 
 def train_model(
@@ -77,7 +70,7 @@ def train_model(
         })
     
     if output_path is None:
-        output_path = str(get_default_model_path(full=full))
+        output_path = str(get_model_path(full=full))
     
     save_model(pipeline, output_path)
     
