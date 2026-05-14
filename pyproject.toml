@@ -50,8 +50,11 @@ xgb = [
 lgb = [
     "lightgbm>=4.0",
 ]
+web = [
+    "streamlit>=1.28",
+]
 all = [
-    "linksentry[full,xgb,lgb]",
+    "linksentry[full,xgb,lgb,web]",
 ]
 dev = [
     "pytest>=7.0",

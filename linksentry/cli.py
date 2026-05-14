@@ -377,6 +377,39 @@ def config_show():
             click.echo(f"  {key} = {val}")
 
 
+@cli.command()
+@click.option('--port', '-p', default=8501, type=int, help='Port to run the web UI on')
+def web(port: int):
+    """Launch the Streamlit web UI."""
+    try:
+        import streamlit
+    except ImportError:
+        click.echo(click.style("Error: streamlit not installed.", fg='red'), err=True)
+        click.echo("Install: pip install linksentry[web]")
+        sys.exit(1)
+
+    import os
+    import subprocess
+    from pathlib import Path
+
+    config_dir = Path.home() / ".streamlit"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    (config_dir / "config.toml").write_text(
+        "[browser]\ngatherUsageStats = false\n[theme]\nbase = \"dark\"\n"
+    )
+    (config_dir / "credentials.toml").write_text(
+        "[general]\nemail = \"\"\n"
+    )
+
+    app_path = str(Path(__file__).parent / "app.py")
+    click.echo(click.style(f"Starting LinkSentry Web UI on port {port}...", bold=True))
+    click.echo(f"  http://localhost:{port}")
+    subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", app_path,
+         "--server.port", str(port)],
+    )
+
+
 def main():
     cli()
 
