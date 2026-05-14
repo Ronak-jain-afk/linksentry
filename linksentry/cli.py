@@ -401,7 +401,7 @@ def web(port: int):
         "[general]\nemail = \"\"\n"
     )
 
-    app_path = str(Path(__file__).parent / "app.py")
+    app_path = str(Path(__file__).resolve().parent.parent / "app.py")
     click.echo(click.style(f"Starting LinkSentry Web UI on port {port}...", bold=True))
     click.echo(f"  http://localhost:{port}")
     subprocess.run(

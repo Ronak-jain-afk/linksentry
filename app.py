@@ -1,6 +1,5 @@
 import os
 import sys
-from io import StringIO
 
 import streamlit as st
 
@@ -54,9 +53,9 @@ def show_single_check():
             return
 
         if result['label'] == 'phishing':
-            st.error(f"Phishing Detected")
+            st.error("Phishing Detected")
         else:
-            st.success(f"Legitimate")
+            st.success("Legitimate")
 
         col1, col2 = st.columns(2)
         conf = result['confidence'] * 100
