@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional, Union
 
@@ -76,27 +77,38 @@ def predict_url(url: str, model=None, full: bool = False, explain: bool = False)
     return result
 
 
-def predict_urls(urls: list, model=None, full: bool = False, explain: bool = False) -> list:
+def _predict_one(url: str, model, full: bool, explain: bool) -> dict:
+    try:
+        return predict_url(url, model=model, full=full, explain=explain)
+    except Exception as e:
+        return {
+            'url': url,
+            'prediction': None,
+            'label': 'error',
+            'confidence': None,
+            'probability_legitimate': None,
+            'probability_phishing': None,
+            'features_extracted': None,
+            'error': str(e),
+        }
+
+
+def predict_urls(urls: list, model=None, full: bool = False, explain: bool = False,
+                 workers: int = 4) -> list:
     if model is None:
         model = load_model(full=full)
-    
-    results = []
-    for url in urls:
-        try:
-            result = predict_url(url, model=model, full=full, explain=explain)
-        except Exception as e:
-            result = {
-                'url': url,
-                'prediction': None,
-                'label': 'error',
-                'confidence': None,
-                'probability_legitimate': None,
-                'probability_phishing': None,
-                'features_extracted': None,
-                'error': str(e)
-            }
-        results.append(result)
-    
+
+    if len(urls) <= 1 or workers <= 1:
+        return [_predict_one(url, model, full, explain) for url in urls]
+
+    results = [None] * len(urls)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        fut_map = {executor.submit(_predict_one, url, model, full, explain): i
+                   for i, url in enumerate(urls)}
+        for fut in as_completed(fut_map):
+            idx = fut_map[fut]
+            results[idx] = fut.result()
+
     return results
 
 
