@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from .extractor import EXTERNAL_FEATURE_NAMES
+from .extractor import EXTERNAL_FEATURE_NAMES, FEATURE_ORDER
 from .predictor import get_model_path
 from .preprocess import load_data, clean_data, split_features_labels, check_class_distribution
 from .model import create_pipeline, evaluate_model, save_model
@@ -32,6 +32,9 @@ def train_model(
             print(f"\n--- Stripping external features for basic model ---")
             print(f"Dropping {len(cols_to_drop)} external feature columns")
             X = X.drop(columns=cols_to_drop)
+    
+    present_in_order = [c for c in FEATURE_ORDER if c in X.columns]
+    X = X[present_in_order]
     
     print("\n--- Train-Test Split ---")
     X_train, X_test, y_train, y_test = train_test_split(
