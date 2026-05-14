@@ -44,6 +44,15 @@ full = [
     "dnspython>=2.0",
     "python-whois>=0.8",
 ]
+xgb = [
+    "xgboost>=1.7",
+]
+lgb = [
+    "lightgbm>=4.0",
+]
+all = [
+    "linksentry[full,xgb,lgb]",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",

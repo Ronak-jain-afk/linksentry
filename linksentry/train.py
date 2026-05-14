@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from .extractor import EXTERNAL_FEATURE_NAMES, FEATURE_ORDER
 from .predictor import get_model_path
 from .preprocess import load_data, clean_data, split_features_labels, check_class_distribution
-from .model import create_pipeline, evaluate_model, save_model
+from .model import create_pipeline, evaluate_model, save_model, MODEL_TYPES
 
 
 def train_model(
@@ -15,10 +15,11 @@ def train_model(
     test_size: float = 0.2,
     random_state: int = 42,
     full: bool = False,
+    model_type: str = 'rf',
 ) -> dict:
     mode = "FULL" if full else "BASIC"
     print("="*60)
-    print(f"LINKSENTRY - MODEL TRAINING ({mode})")
+    print(f"LINKSENTRY - MODEL TRAINING ({mode} / {model_type})")
     print("="*60)
     
     df = load_data(data_path)
@@ -46,7 +47,7 @@ def train_model(
     print(f"Training set: {X_train.shape[0]:,} samples")
     print(f"Test set:     {X_test.shape[0]:,} samples")
     
-    pipeline = create_pipeline()
+    pipeline = create_pipeline(model_type=model_type)
     
     print("\n--- Training Model ---")
     print("Training in progress...")
@@ -83,6 +84,7 @@ def train_model(
     
     return {
         'model_path': output_path,
+        'model_type': model_type,
         'metrics': metrics,
         'top_features': top_features,
         'train_samples': X_train.shape[0],

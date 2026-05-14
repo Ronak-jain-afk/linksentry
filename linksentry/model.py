@@ -7,27 +7,80 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
     accuracy_score,
-    roc_auc_score
+    roc_auc_score,
 )
 
+try:
+    from xgboost import XGBClassifier
+    _XGB_AVAILABLE = True
+except ImportError:
+    _XGB_AVAILABLE = False
 
-def create_pipeline() -> Pipeline:
-    print("\n--- Creating Pipeline ---")
-    
-    pipeline = Pipeline([
+try:
+    from lightgbm import LGBMClassifier
+    _LGB_AVAILABLE = True
+except ImportError:
+    _LGB_AVAILABLE = False
+
+
+def _create_rf_pipeline() -> Pipeline:
+    return Pipeline([
         ('scaler', StandardScaler()),
         ('classifier', RandomForestClassifier(
             n_estimators=100,
             class_weight='balanced',
             random_state=42,
-            n_jobs=-1
-        ))
+            n_jobs=-1,
+        )),
     ])
-    
-    print("Pipeline components:")
-    print("  1. StandardScaler (normalize features)")
-    print("  2. RandomForestClassifier (n_estimators=100, class_weight='balanced')")
-    
+
+
+def _create_xgb_pipeline() -> Pipeline:
+    return Pipeline([
+        ('scaler', StandardScaler()),
+        ('classifier', XGBClassifier(
+            n_estimators=100,
+            eval_metric='logloss',
+            use_label_encoder=False,
+            random_state=42,
+            n_jobs=-1,
+        )),
+    ])
+
+
+def _create_lgb_pipeline() -> Pipeline:
+    return Pipeline([
+        ('scaler', StandardScaler()),
+        ('classifier', LGBMClassifier(
+            n_estimators=100,
+            class_weight='balanced',
+            random_state=42,
+            n_jobs=-1,
+            verbose=-1,
+        )),
+    ])
+
+
+_MODEL_BUILDERS = {
+    'rf': ('RandomForest', _create_rf_pipeline),
+    'xgb': ('XGBoost', _create_xgb_pipeline),
+    'lgb': ('LightGBM', _create_lgb_pipeline),
+}
+
+
+MODEL_TYPES = tuple(_MODEL_BUILDERS.keys())
+
+
+def create_pipeline(model_type: str = 'rf') -> Pipeline:
+    model_type = model_type.lower()
+    if model_type not in _MODEL_BUILDERS:
+        valid = ', '.join(_MODEL_BUILDERS)
+        raise ValueError(f"Unknown model type '{model_type}'. Valid: {valid}")
+
+    name, builder = _MODEL_BUILDERS[model_type]
+    print(f"\n--- Creating Pipeline ({name}) ---")
+    pipeline = builder()
+    print(f"Pipeline components: 1. StandardScaler  2. {name}")
     return pipeline
 
 

@@ -9,6 +9,7 @@ import click
 from . import __version__
 from .extractor import extract_features, FEATURE_ORDER
 from .predictor import predict_url, predict_urls, load_model, get_model_path
+from .model import MODEL_TYPES
 from .train import train_model
 
 
@@ -200,12 +201,13 @@ def extract(input: str, output: str, full: bool):
 @cli.command()
 @click.option('--data', '-d', type=click.Path(exists=True), required=True, help='Path to training dataset CSV')
 @click.option('--output', '-o', type=click.Path(), help='Path to save trained model')
+@click.option('--model', '-m', type=click.Choice(MODEL_TYPES), default='rf', help='Model type (rf, xgb, lgb)')
 @click.option('--full', '-f', is_flag=True, help='Train with external features (DNS/WHOIS) included')
-def train(data: str, output: Optional[str], full: bool):
+def train(data: str, output: Optional[str], model: str, full: bool):
     """Train or retrain the phishing detection model."""
     try:
-        result = train_model(data_path=data, output_path=output, full=full)
-        click.echo(click.style("\n✅ Model trained successfully!", fg='green', bold=True))
+        result = train_model(data_path=data, output_path=output, full=full, model_type=model)
+        click.echo(click.style("\nModel trained successfully!", fg='green', bold=True))
         click.echo(f"Model saved to: {result['model_path']}")
         click.echo(f"Accuracy: {result['metrics']['accuracy']:.4f}")
         if result['metrics']['roc_auc']:
